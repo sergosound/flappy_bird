@@ -11,7 +11,8 @@ function createCanvas() {
     imgPipe.src = 'pipe.svg';
     const canvasXSize = 668;
     const canvasYSize = 500;
-    const pipeChords = {};
+    const pipes = generatePipeArray(canvasXSize, 400);
+    const pipesChords = {};
     const birdChords = {};
     const globalTimeout = 10;
     let ctx, imgW, imgH;
@@ -72,6 +73,7 @@ function createCanvas() {
     }
 
     function createBackground() {
+        // console.log(pipesChords)
         if (Math.abs(Math.abs(x) - canvasXSize) <= dx) {
             // dx += 1;
             x = 0;
@@ -102,11 +104,23 @@ function createCanvas() {
     function createPipe() {
         const ix = canvasXSize - 100 + x;
         const iy = canvasYSize - imgPipe.height;
-        setPipeChords(imgPipe, ix, iy);
-        ctx.drawImage(imgPipe, ix, iy, imgPipe.width, imgPipe.height);
-        const emptySpace = 150;
-        setPipeChords(imgPipe, ix + 250, iy + emptySpace);
-        ctx.drawImage(imgPipe, ix + 250, iy + emptySpace, imgPipe.width, imgPipe.height - emptySpace);
+
+        if (ix <= 0) {
+            // remove Pipe
+        }
+
+        // const pip = [{x: 100, y: 300}, {x: 390, y: 250}, {x: 670, y: 400}];
+
+        pipes.forEach((p, index) => {
+            setPipeChords(imgPipe.width, imgPipe.height, p.x + x, p.y, index);
+            ctx.drawImage(imgPipe, p.x + x, p.y, imgPipe.width, imgPipe.height);
+        })
+
+        // setPipeChords(imgPipe.width, imgPipe.height, ix, iy, _);
+        // ctx.drawImage(imgPipe, ix, iy, imgPipe.width, imgPipe.height);
+        // const emptySpace = 150;
+        // setPipeChords(imgPipe.width, imgPipe.height, ix + 250, iy + emptySpace, _);
+        // ctx.drawImage(imgPipe, ix + 250, iy + emptySpace, imgPipe.width, imgPipe.height - emptySpace);
     }
 
     function createUI() {
@@ -171,30 +185,39 @@ function createCanvas() {
     }
 
     function intersectionCheck() {
-        const xIntersection = pipeChords.x <= birdChords.x + birdChords.w;
-        const yIntersection = pipeChords.y <= birdChords.y + birdChords.h;
-        const birdAfterPipe = birdChords.x >  pipeChords.x + pipeChords.w;
+        Object.entries(pipesChords).forEach(([name, pipe]) => {
+            const xIntersection = pipe.x <= birdChords.x + birdChords.w;
+            const yIntersection = pipe.y <= birdChords.y + birdChords.h;
+            const birdAfterPipe = birdChords.x > pipe.x + pipe.w;
+            const birdDownPipe = birdChords.y < pipe.y + pipe.h;
 
-        if (xIntersection && yIntersection && !birdAfterPipe) {
-            stop();
-        }
+            if (xIntersection && yIntersection && !birdAfterPipe && birdDownPipe) {
+                console.log('|| i', pipesChords, birdChords, pipes)
+                stop();
+            }
+        })
     }
 
     function createScore() {
         ctx.fillText(dx, canvasXSize - 65, canvasYSize - 450);
     }
 
-    function setPipeChords(img, x, y) {
-        pipeChords.x = x;
-        pipeChords.y = y;
-        pipeChords.w = img.width;
-        pipeChords.h = img.height;
-        ctx.fillRect(x, y, img.width, img.height);
+    function setPipeChords(w, h, x, y, index) {
+        if (!pipesChords[index]) {
+            pipesChords[index] = {}
+        }
+        const pipe = pipesChords[index];
+
+        pipe.x = x;
+        pipe.y = y;
+        pipe.w = w;
+        pipe.h = h;
+        ctx.fillRect(x, y, w, h);
 
         ctx.beginPath();
         ctx.arc(x, y, 5, 0, Math.PI * 2, true);
         ctx.moveTo(1102, 75);
-        ctx.stroke()
+        ctx.stroke();
     }
 
     function setBirdChords(img, x, y) {
@@ -208,5 +231,14 @@ function createCanvas() {
         ctx.arc(x, y, 5, 0, Math.PI * 2, true);
         ctx.moveTo(1102, 75);
         ctx.stroke()
+    }
+
+    function generatePipeArray(xMax, yMax) {
+        const result = [];
+        for (let i = 0; i < 3; i++) {
+            const pipe = {x: Math.floor(Math.random() * xMax), y: Math.floor(Math.random() * yMax)};
+            result.push(pipe);
+        }
+        return result;
     }
 }
