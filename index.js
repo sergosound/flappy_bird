@@ -15,10 +15,7 @@ const settings = {
 
 function createCanvas() {
     let lastXPipe = 0;
-    const pipesTopArray =    generatePipeChordsObject('top', 5);
-    // const pipesTopArray =    [{x: 330, y: -100}, {x:650, y:-200}, {x:990, y:-120},  {x:1300, y:-190}];
-    const pipesBottomArray = generatePipeChordsObject('bottom', 5);
-    // const pipesBottomArray = [{x: 200, y: 400},  {x:650, y:250},  {x:990, y:320}, {x:1300, y:390}];
+    const pipesArray = generatePipeChordsObject(50);
     const imgBackground = new Image();
     imgBackground.src = 'background.png';
     const imgBird = new Image();
@@ -29,8 +26,7 @@ function createCanvas() {
     imgPipeTop.src = 'pipeTop.svg';
     const canvasXSize = 668;
     const canvasYSize = 500;
-    const pipesBottom = generatePipeArray(pipesBottomArray);
-    const pipesTop = generatePipeArray(pipesTopArray);
+    const pipes = generatePipeArray(pipesArray);
     const pipesChords = { top: [], bottom: [] };
     const birdChords = {};
     const globalTimeout = 10;
@@ -60,7 +56,6 @@ function createCanvas() {
             ctx.textAlign = 'start';
         }
         startOnLoad();
-        console.log('|||', pipesTopArray)
     }
 
     function start() {
@@ -124,22 +119,14 @@ function createCanvas() {
     }
 
     function createPipe() {
-        console.log('||')
         const ix = canvasXSize - 100 + xp;
-        const iy = canvasYSize - imgPipe.height;
-
         if (ix <= 0) {
             // remove Pipe
         }
-
-        pipesBottom.forEach((p, index) => {
-            setPipeChords(imgPipe.width, imgPipe.height, p.x + xp, p.y, index, 'bottom');
-            ctx.drawImage(imgPipe, p.x + xp, p.y, imgPipe.width, imgPipe.height);
-        });
-
-        pipesTop.forEach((p, index) => {
-            setPipeChords(imgPipeTop.width, imgPipeTop.height, p.x + xp, p.y, index, 'top');
-            ctx.drawImage(imgPipeTop, p.x + xp, p.y, imgPipeTop.width, imgPipeTop.height);
+        pipes.forEach((p, index) => {
+            const img = p.placement === 'top' ? imgPipeTop : imgPipe;
+            setPipeChords(img.width, img.height, p.x + xp, p.y, index, p.placement);
+            ctx.drawImage(img, p.x + xp, p.y, img.width, img.height);
         });
     }
 
@@ -273,20 +260,21 @@ function createCanvas() {
         while (n < min) {
             n = getBetweenNumber(min, max);
         }
-        console.log('|||mm', n)
         if (isX) {
-            const spaceBetweenPipes = getBetweenNumber(10, 30);
-            lastXPipe += n + spaceBetweenPipes - lastXPipe / 3;
-            console.log('|||c', spaceBetweenPipes, n + spaceBetweenPipes);
+            const spaceBetweenPipes = getBetweenNumber(150, 200);
+            lastXPipe += n + spaceBetweenPipes - spaceBetweenPipes;
+            // console.log('|e|e|', n, spaceBetweenPipes, lastXPipe);
             return lastXPipe;
         }
         return n;
     }
 
-    function generatePipeChordsObject(placement, length) {
+    function generatePipeChordsObject(length) {
         const result = [];
         for (let i = 0; i < length; i++) {
+            const placement = i % 2 === 0 ? 'top' : 'bottom';
             const chords = {
+                placement,
                 x: generatePipeChords(settings[placement].x, true),
                 y: generatePipeChords(settings[placement].y),
             };
