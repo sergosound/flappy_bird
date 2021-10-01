@@ -192,24 +192,21 @@ function createCanvas() {
     }
 
     function intersectionCheck() {
-        const pTop = pipesChords.top;
-        const pBottom = pipesChords.bottom;
+        check(pipesChords.top);
+        check(pipesChords.bottom);
+    }
 
-        check(pTop);
-        check(pBottom);
+    function check(pipes) {
+        Object.entries(pipes).forEach(([name, pipe]) => {
+            const xIntersection = pipe.x <= birdChords.x + birdChords.w;
+            const yIntersection = pipe.y <= birdChords.y + birdChords.h;
+            const birdAfterPipe = birdChords.x > pipe.x + pipe.w;
+            const birdDownPipe = birdChords.y < pipe.y + pipe.h;
 
-        function check(pipes) {
-            Object.entries(pipes).forEach(([name, pipe]) => {
-                const xIntersection = pipe.x <= birdChords.x + birdChords.w;
-                const yIntersection = pipe.y <= birdChords.y + birdChords.h;
-                const birdAfterPipe = birdChords.x > pipe.x + pipe.w;
-                const birdDownPipe = birdChords.y < pipe.y + pipe.h;
-
-                if (xIntersection && yIntersection && !birdAfterPipe && birdDownPipe) {
-                    stop();
-                }
-            });
-        }
+            if (xIntersection && yIntersection && !birdAfterPipe && birdDownPipe) {
+                stop();
+            }
+        });
     }
 
     function createScore() {
