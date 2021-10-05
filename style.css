@@ -1,0 +1,23 @@
+body {
+    display: flex;
+    justify-content: space-between;
+}
+.table {
+    font-size: 30px;
+}
+.table .item {
+    display: flex;
+    justify-content: space-between;
+}
+.table .item:nth-child(2n) {
+    background-color: #98ea98;
+}
+.table .item:nth-child(2n - 1) {
+    background-color: #6df36d;
+}
+.table span {
+    font-family: monospace;
+    text-transform: uppercase;
+    padding: 5px;
+    margin: 0 2px;
+}

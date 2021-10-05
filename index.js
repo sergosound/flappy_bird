@@ -1,8 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
-    createCanvas()
+    createCanvas();
 });
 
+const persons = ['Anton', 'Oleg', 'Sergey', 'Nazar', 'Andrey', 'Alina', 'Evegeniy', 'Vokzal', 'Romantu4na_Zdobu4', 'Angel_Predohranitel\''];
+
 function createCanvas() {
+    const $table = document.querySelector('.table');
     let lastXPipe = 550;
     const imgBackground = new Image();
     imgBackground.src = 'background.png';
@@ -18,6 +21,7 @@ function createCanvas() {
     const pipesChords = { top: [], bottom: [] };
     const birdChords = {};
     const globalTimeout = 10;
+    let completeWidth = 0;
     let ctx, imgW, imgH;
     let dx;
     let x, xp;
@@ -27,9 +31,30 @@ function createCanvas() {
     let gameInterval, clickInterval, upInterval, downInterval;
     let lastYBirdPosition;
     let pause = true;
+    const evolutionStatus = (() => {
+        const onceEvo = (() => {
+            const result = {};
+            for (let i = 0; i < 10; i++) {
+                result[i] = {
+                    name: persons[i],
+                    result: 0,
+                }
+            }
+            return result;
+        })();
+        const result = [];
+        for (let i = 0; i < 10; i++) {
+            result.push(onceEvo);
+        }
+        return result;
+    })();
+    let evoIndex = 0;
+    let personIndex = 0;
+    let firstStart = true;
+    let isII = true;
+    let completedWidth = 0;
 
     init();
-    console.log('000', pipes)
 
     function init() {
         addEvents();
@@ -48,6 +73,7 @@ function createCanvas() {
     }
 
     function start() {
+        pause = false;
         setVariables();
         gameInterval = setInterval(draw, globalTimeout);
     }
@@ -70,9 +96,15 @@ function createCanvas() {
         gravity = 0.1;
         timeInTheAir = 0;
         lastYBirdPosition = 150;
+        completeWidth = 0;
     }
 
     function draw() {
+        if (isII) {
+            if (evoIndex >= 10) {
+                return;
+            }
+        }
         if (ctx) {
             createUI();
         }
@@ -88,6 +120,9 @@ function createCanvas() {
         ctx.drawImage(imgBackground, x, y, imgW, imgH);
         x -= dx;
         xp -= dx;
+
+        completedWidth++;
+        evolutionStatus[evoIndex][personIndex].result = completedWidth;
     }
 
     function createBird() {
@@ -128,15 +163,27 @@ function createCanvas() {
         createBird();
         createScore();
         intersectionCheck();
+        renderTableScore(evolutionStatus, evoIndex);
 
         if (pause) {
             ctx.fillText('Tap SPACE', 100, 100);
+            // if (isII) {
+            //     if (firstStart) {
+            //         firstStart = false;
+            //     } else {
+            //         if (evoIndex <= 1) {
+            //             console.log('+=', pause,evoIndex)
+            //             createII();
+            //         }
+            //     }
+            // }
         }
     }
 
     function drawBird(img, x, y) {
         setBirdChords(img, x, y);
         ctx.drawImage(img, x, y, img.width, img.height);
+        // evolutionStatus[evoIndex][personIndex].result = x;
     }
 
     function bounce() {
@@ -169,6 +216,9 @@ function createCanvas() {
 
     function addEvents() {
         document.addEventListener('keydown', (event) => {
+            if (event.code === 'Enter') {
+                createII();
+            }
             if (pause) {
                 pause = false;
                 start();
@@ -182,7 +232,19 @@ function createCanvas() {
 
     function stop() {
         pause = true;
+        x = 0;
+        dx = 0;
         [gameInterval, clickInterval, upInterval, downInterval].forEach((interval) => clearInterval(interval));
+        if (isII) {
+            if (firstStart) {
+                firstStart = false;
+            } else {
+                if (evoIndex <= 10) {
+                    // console.log('+=', pause,evoIndex)
+                    createII();
+                }
+            }
+        }
     }
 
     function intersectionCheck() {
@@ -262,5 +324,50 @@ function createCanvas() {
 
     function getBetweenNumber(min, max) {
         return Math.floor(min + Math.random() * (max + 1 - min));
+    }
+
+    function renderTableScore(data, evoIndex) {
+        let html = '';
+        Object.entries(data[evoIndex]).forEach(([_, { name, result }]) => {
+            html += `
+                <div class="item">
+                    <span>${name}:</span>
+                    <span>${result}</span>
+                </div>
+            `
+        });
+        $table.innerHTML = html + 'evo ' + evoIndex;
+    }
+
+    function startII() {
+        if (evoIndex >= 10) {
+            stop();
+            return;
+        }
+        start();
+        if (!firstStart) {
+            personIndex++;
+            completedWidth = 0;
+        }
+        if (personIndex === 10) {
+            // console.log('+=+', evoIndex, personIndex)
+            personIndex = 0;
+            evoIndex++;
+            resetEvoScore();
+        }
+    }
+
+    function createII() {
+        // console.log('createII');
+        const interval = setTimeout(() => {
+            startII();
+            clearInterval(interval);
+        }, 1000);
+    }
+
+    function resetEvoScore() {
+        Object.entries(evolutionStatus[evoIndex]).forEach(([_, score]) => {
+            score.result = 0;
+        });
     }
 }
