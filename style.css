@@ -15,9 +15,16 @@ body {
 .table .item:nth-child(2n - 1) {
     background-color: #6df36d;
 }
+.table .item:last-child {
+    background-color: turquoise;
+}
 .table span {
     font-family: monospace;
     text-transform: uppercase;
     padding: 5px;
     margin: 0 2px;
+}
+span.evolution {
+    padding-top: 10px;
+    /*background-color: cadetblue;*/
 }

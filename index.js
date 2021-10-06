@@ -20,7 +20,7 @@ function createCanvas() {
     const pipes = generatePipeChordsObject(150);
     const pipesChords = { top: [], bottom: [] };
     const birdChords = {};
-    const globalTimeout = 10;
+    const drawInterval = 10;
     let completeWidth = 0;
     let ctx, imgW, imgH;
     let dx;
@@ -28,31 +28,31 @@ function createCanvas() {
     let y;
     let gravity;
     let timeInTheAir;
-    let gameInterval, clickInterval, upInterval, downInterval;
+    let gameInterval, clickInterval, upInterval, downInterval, jumpsIITimeout;
     let lastYBirdPosition;
     let pause = true;
     const evolutionStatus = (() => {
-        const onceEvo = (() => {
-            const result = {};
-            for (let i = 0; i < 10; i++) {
-                result[i] = {
-                    name: persons[i],
-                    result: 0,
-                }
-            }
-            return result;
-        })();
         const result = [];
         for (let i = 0; i < 10; i++) {
+            const onceEvo = {};
+            for (let j = 0; j < 10; j++) {
+                onceEvo[j] = {
+                    name: persons[j],
+                    result: 0,
+                    clicks: [],
+                }
+            }
             result.push(onceEvo);
         }
         return result;
     })();
     let evoIndex = 0;
+    const maxEvoCount = 49;
     let personIndex = 0;
     let firstStart = true;
     let isII = true;
     let completedWidth = 0;
+    let clicksCount = 0;
 
     init();
 
@@ -75,7 +75,7 @@ function createCanvas() {
     function start() {
         pause = false;
         setVariables();
-        gameInterval = setInterval(draw, globalTimeout);
+        gameInterval = setInterval(draw, drawInterval);
     }
 
     function startOnLoad() {
@@ -101,7 +101,7 @@ function createCanvas() {
 
     function draw() {
         if (isII) {
-            if (evoIndex >= 10) {
+            if (evoIndex > maxEvoCount) {
                 return;
             }
         }
@@ -121,22 +121,28 @@ function createCanvas() {
         x -= dx;
         xp -= dx;
 
-        completedWidth++;
-        evolutionStatus[evoIndex][personIndex].result = completedWidth;
+        if (!pause) {
+            completedWidth++;
+            evolutionStatus[evoIndex][personIndex].result = completedWidth;
+        }
     }
 
     function createBird() {
         const ix = 150;
-        const iy = 150 + gravity;
+        const iy = 300 + gravity;
         lastYBirdPosition = iy;
 
         if (iy <= 0) {
             drawBird(imgBird, ix, 0);
-            stop();
+            if (!pause) {
+                stop();
+            }
         } else if (iy >= canvasYSize - imgBird.height) {
             const stopYPosition = canvasYSize - imgBird.height;
             drawBird(imgBird, ix, stopYPosition);
-            stop();
+            if (!pause) {
+                stop();
+            }
         } else {
             drawBird(imgBird, ix, iy);
         }
@@ -167,23 +173,12 @@ function createCanvas() {
 
         if (pause) {
             ctx.fillText('Tap SPACE', 100, 100);
-            // if (isII) {
-            //     if (firstStart) {
-            //         firstStart = false;
-            //     } else {
-            //         if (evoIndex <= 1) {
-            //             console.log('+=', pause,evoIndex)
-            //             createII();
-            //         }
-            //     }
-            // }
         }
     }
 
     function drawBird(img, x, y) {
         setBirdChords(img, x, y);
         ctx.drawImage(img, x, y, img.width, img.height);
-        // evolutionStatus[evoIndex][personIndex].result = x;
     }
 
     function bounce() {
@@ -191,7 +186,7 @@ function createCanvas() {
         clearInterval(clickInterval);
         clickInterval = setInterval(() => {
             timeInTheAir += 0.1;
-        }, globalTimeout)
+        }, drawInterval)
         up(down);
     }
 
@@ -204,25 +199,27 @@ function createCanvas() {
                 return;
             }
             gravity -= 5 - timeInTheAir;
-        }, globalTimeout);
+        }, drawInterval);
     }
 
     function down() {
         clearInterval(downInterval);
         downInterval = setInterval(() => {
             gravity += 0.8 * timeInTheAir
-        }, globalTimeout);
+        }, drawInterval);
     }
 
     function addEvents() {
         document.addEventListener('keydown', (event) => {
-            if (event.code === 'Enter') {
-                createII();
-            }
             if (pause) {
                 pause = false;
                 start();
-                return;
+                // return;
+            }
+
+            if (event.code === 'Enter') {
+                createII();
+                jumpsII();
             }
             if (event.code === 'Space') {
                 bounce();
@@ -231,16 +228,16 @@ function createCanvas() {
     }
 
     function stop() {
-        pause = true;
-        x = 0;
-        dx = 0;
-        [gameInterval, clickInterval, upInterval, downInterval].forEach((interval) => clearInterval(interval));
-        if (isII) {
-            if (firstStart) {
-                firstStart = false;
-            } else {
-                if (evoIndex <= 10) {
-                    // console.log('+=', pause,evoIndex)
+        if (!pause) {
+            pause = true;
+            x = 0;
+            dx = 0;
+            [gameInterval, clickInterval, upInterval, downInterval].forEach((interval) => clearInterval(interval));
+            if (isII) {
+                if (firstStart) {
+                    firstStart = false;
+                }
+                if (evoIndex < maxEvoCount) {
                     createII();
                 }
             }
@@ -260,7 +257,9 @@ function createCanvas() {
             const birdDownPipe = birdChords.y < pipe.y + pipe.h;
 
             if (xIntersection && yIntersection && !birdAfterPipe && birdDownPipe) {
-                stop();
+                if (!pause) {
+                    stop();
+                }
             }
         });
     }
@@ -336,38 +335,97 @@ function createCanvas() {
                 </div>
             `
         });
-        $table.innerHTML = html + 'evo ' + evoIndex;
+        $table.innerHTML = html + `<div class="item"><span class="evolution">Evolution ${evoIndex}</span></div>`;
     }
 
     function startII() {
-        if (evoIndex >= 10) {
+        if (evoIndex > maxEvoCount) {
             stop();
             return;
         }
         start();
+        jumpsII();
         if (!firstStart) {
             personIndex++;
             completedWidth = 0;
+            // clicksCount = 0;
         }
         if (personIndex === 10) {
-            // console.log('+=+', evoIndex, personIndex)
             personIndex = 0;
             evoIndex++;
-            resetEvoScore();
+            checkBestResult();
         }
+        clicksCount = 0;
+        updateEvoExpire();
     }
 
     function createII() {
-        // console.log('createII');
         const interval = setTimeout(() => {
             startII();
             clearInterval(interval);
         }, 1000);
     }
 
-    function resetEvoScore() {
-        Object.entries(evolutionStatus[evoIndex]).forEach(([_, score]) => {
-            score.result = 0;
+    function updateEvoExpire() {
+        if (evoIndex > maxEvoCount || evoIndex === 0) {
+            return;
+        }
+        Object.entries(evolutionStatus[evoIndex]).forEach(([_, score], index) => {
+            score.clicks = evolutionStatus[evoIndex - 1][index].clicks.slice(0,  -1);
         });
+        // if (evoIndex !== 0) {
+        //     console.log('+ evolutionStatus +++', evoIndex,
+        //         evolutionStatus[evoIndex][personIndex].clicks.length,
+        //         evolutionStatus[evoIndex - 1][personIndex].clicks.length
+        //     );
+        // }
+    }
+
+    function jumpsII() {
+        if (evoIndex > maxEvoCount) {
+            return;
+        }
+        if (evoIndex === 0) {
+            const jumpMs = getBetweenNumber(100, 1000);
+            clearTimeout(jumpsIITimeout);
+            jumpsIITimeout = setTimeout(() => {
+                if (!pause) {
+                    evolutionStatus[evoIndex][personIndex].clicks.push(jumpMs);
+                    bounce();
+                    jumpsII();
+                }
+            }, jumpMs);
+        } else {
+            const { result, clicks } = evolutionStatus[evoIndex - 1][personIndex];
+            // console.log('||+||', clicks.length, clicksCount);
+            if (clicks.length < clicksCount) {
+                // generate new clicks
+                const jumpMs = getBetweenNumber(100, 1000);
+                clearTimeout(jumpsIITimeout);
+                jumpsIITimeout = setTimeout(() => {
+                    if (!pause) {
+                        console.log('||=|| generate new click');
+                        evolutionStatus[evoIndex][personIndex].clicks.push(jumpMs);
+                        bounce();
+                        jumpsII();
+                        clicksCount++;
+                    }
+                }, jumpMs);
+            } else {
+                // use previous clicks
+                jumpsIITimeout = setTimeout(() => {
+                    if (!pause) {
+                        console.log('||=|| use previous click');
+                        bounce();
+                        jumpsII();
+                        clicksCount++;
+                    }
+                }, clicks[clicksCount]);
+            }
+        }
+    }
+
+    function checkBestResult() {
+
     }
 }
