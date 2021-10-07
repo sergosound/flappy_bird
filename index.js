@@ -2,7 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     createCanvas();
 });
 
-const persons = ['Anton', 'Oleg', 'Sergey', 'Nazar', 'Andrey', 'Alina', 'Evegeniy', 'Vokzal', 'Romantu4na_Zdobu4', 'Angel_Predohranitel\''];
+// const persons = ['Anton', 'Oleg', 'Sergey', 'Nazar', 'Andrey', 'Alina', 'Evegeniy', 'Vokzal', 'Romantu4na_Zdobu4', 'Angel_Predohranitel\''];
+const persons = ['A', 'B'];
 
 function createCanvas() {
     const $table = document.querySelector('.table');
@@ -31,11 +32,19 @@ function createCanvas() {
     let gameInterval, clickInterval, upInterval, downInterval, jumpsIITimeout;
     let lastYBirdPosition;
     let pause = true;
+    let evoIndex = 0;
+    const maxEvoCount = 300;
+    const maxPersonCount = persons.length;
+    let personIndex = 0;
+    let firstStart = true;
+    let isII = true;
+    let completedWidth = 0;
+    let clicksCount = 0;
     const evolutionStatus = (() => {
         const result = [];
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < maxEvoCount; i++) {
             const onceEvo = {};
-            for (let j = 0; j < 10; j++) {
+            for (let j = 0; j < maxPersonCount; j++) {
                 onceEvo[j] = {
                     name: persons[j],
                     result: 0,
@@ -46,15 +55,20 @@ function createCanvas() {
         }
         return result;
     })();
-    let evoIndex = 0;
-    const maxEvoCount = 49;
-    let personIndex = 0;
-    let firstStart = true;
-    let isII = true;
-    let completedWidth = 0;
-    let clicksCount = 0;
+    const bestPerson = {
+        result: 0,
+        clicks: [],
+    };
+    const lastBestPerson = {
+        result: 0,
+        clicks: [],
+    };
+    const bestResults = {
+
+    }
 
     init();
+    console.log('+||+ evo statuc', evolutionStatus)
 
     function init() {
         addEvents();
@@ -343,20 +357,24 @@ function createCanvas() {
             stop();
             return;
         }
+        clicksCount = 0;
         start();
         jumpsII();
+        // updateEvoExpire();
         if (!firstStart) {
             personIndex++;
             completedWidth = 0;
             // clicksCount = 0;
         }
-        if (personIndex === 10) {
+        if (personIndex === maxPersonCount) {
             personIndex = 0;
             evoIndex++;
-            checkBestResult();
+            console.log('+||+ before +||+', evolutionStatus);
+            updateEvoExpire();
+            console.log('+||+ after +||+', evolutionStatus);
+            // checkBestResult();
         }
-        clicksCount = 0;
-        updateEvoExpire();
+        // updateEvoExpire();
     }
 
     function createII() {
@@ -370,8 +388,61 @@ function createCanvas() {
         if (evoIndex > maxEvoCount || evoIndex === 0) {
             return;
         }
+
+        // console.log('==evo==', evolutionStatus[evoIndex - 1][personIndex].clicks, evolutionStatus[evoIndex][personIndex].clicks)
+
+
+        // if (evolutionStatus[evoIndex][personIndex].clicks.length > 2) {
+        //     evolutionStatus[evoIndex][personIndex].clicks = evolutionStatus[evoIndex - 1][personIndex].clicks.slice(0,  -1);
+        // } else {
+        //     evolutionStatus[evoIndex][personIndex].clicks = evolutionStatus[evoIndex - 1][personIndex].clicks;
+        // }
         Object.entries(evolutionStatus[evoIndex]).forEach(([_, score], index) => {
-            score.clicks = evolutionStatus[evoIndex - 1][index].clicks.slice(0,  -1);
+            // old
+            // const { clicks: oldClicks, result: oldResult } = evolutionStatus[evoIndex - 1][index];
+            //
+            // if (evoIndex >= 2) {
+            //     const { clicks: veryOldClicks, result: veryOldResult } = evolutionStatus[evoIndex - 2][index];
+            //     if (veryOldResult > oldResult) {
+            //         score.clicks = veryOldClicks.slice(0,  -1);
+            //         return;
+            //     }
+            // }
+            //
+            // if (oldClicks.length > 2) {
+            //     score.clicks = oldClicks.slice(0,  -1);
+            // } else {
+            //     score.clicks = oldClicks;
+            // }
+            // new
+            evolutionStatus.forEach(person => {
+                const currentPerson = person[index];
+                if (currentPerson.result > bestPerson.result) {
+                    console.log('+||+ best', currentPerson.result);
+                    bestPerson.result = currentPerson.result;
+                    bestPerson.clicks = currentPerson.clicks;
+
+                    if (bestResults[currentPerson.result] === 'undefined') {
+                        bestResults[currentPerson.result] = 1;
+                    } else {
+                        bestResults[currentPerson.result]++;
+                    }
+                }
+                if (currentPerson.result > lastBestPerson.result && lastBestPerson.result < bestPerson.result) {
+                    lastBestPerson.result = currentPerson.result;
+                    lastBestPerson.clicks = currentPerson.clicks;
+                }
+            });
+
+            if (bestResults[bestPerson.result] >= 5) {
+                bestResults[bestPerson.result] = 0;
+                score.clicks = bestPerson.clicks.slice(0,  -2);
+            }
+            else if (bestPerson.result - lastBestPerson.result < 50) {
+                score.clicks = bestPerson.clicks.slice(0,  -1);
+            } else {
+                score.clicks = bestPerson.clicks;
+            }
         });
         // if (evoIndex !== 0) {
         //     console.log('+ evolutionStatus +++', evoIndex,
@@ -398,13 +469,14 @@ function createCanvas() {
         } else {
             const { result, clicks } = evolutionStatus[evoIndex - 1][personIndex];
             // console.log('||+||', clicks.length, clicksCount);
+            console.log('||==||', clicks.length < clicksCount, clicks.length, clicksCount);
             if (clicks.length < clicksCount) {
                 // generate new clicks
                 const jumpMs = getBetweenNumber(100, 1000);
                 clearTimeout(jumpsIITimeout);
                 jumpsIITimeout = setTimeout(() => {
                     if (!pause) {
-                        console.log('||=|| generate new click');
+                        console.log('||=|| generate new click', clicksCount);
                         evolutionStatus[evoIndex][personIndex].clicks.push(jumpMs);
                         bounce();
                         jumpsII();
@@ -415,7 +487,7 @@ function createCanvas() {
                 // use previous clicks
                 jumpsIITimeout = setTimeout(() => {
                     if (!pause) {
-                        console.log('||=|| use previous click');
+                        console.log('||=|| use previous click', clicksCount, clicks[clicksCount], evoIndex, evolutionStatus[evoIndex - 1][personIndex].clicks, evolutionStatus[evoIndex][personIndex].clicks);
                         bounce();
                         jumpsII();
                         clicksCount++;
